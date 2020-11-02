@@ -1,4 +1,4 @@
-import { options } from "@acala-network/api";
+
 import { Provider as AbstractProvider } from "@ethersproject/abstract-provider";
 import { BigNumber, BigNumberish } from "@ethersproject/bignumber";
 import type { BytesLike } from "@ethersproject/bytes";
@@ -136,12 +136,10 @@ export class Provider extends eventemitter implements AbstractProvider {
   readonly resolveApi: Promise<ApiPromise>;
   readonly _isProvider: boolean;
 
-  constructor() {
+  constructor(options: any) {
     super();
     this.api = new ApiPromise(
-      options({
-        provider: new WsProvider("ws://192.168.1.165:9944"),
-      })
+      options
     );
     this.resolveApi = this.api.isReady;
     this._isProvider = true;
