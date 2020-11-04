@@ -1,0 +1,19 @@
+{
+  "name": "linkdrop",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "test": "mocha --require @babel/polyfill --require @babel/register"
+  },
+  "dependencies": {
+    "@babel/polyfill": "^7.12.1",
+    "@babel/preset-env": "^7.12.1",
+    "@linkdrop/sdk": "^1.1.6",
+    "ethereum-waffle": "^2.0.14",
+    "ethers": "^4.0.27",
+    "openzeppelin-solidity": "^2.2.0",
+    "solc": "^0.5.10",
+    "ts-node": "^9.0.0"
+  }
+}
