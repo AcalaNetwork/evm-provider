@@ -256,14 +256,15 @@ export class Provider extends eventemitter implements AbstractProvider {
     transaction: Deferrable<TransactionRequest>,
     blockTag?: BlockTag | Promise<BlockTag>
   ): Promise<string> {
-    return this._fail("call");
+    const result = await (this.api.rpc as any).eth.call(await transaction)
+    return result.toHex()
   }
+
   async estimateGas(
     transaction: Deferrable<TransactionRequest>
   ): Promise<BigNumber> {
-    return BigNumber.from(
-      this.api.consts.system.maximumBlockWeight.muln(64).divn(100000).toString()
-    );
+    const result = await (this.api.rpc as any).eth.estimateGas(await transaction)
+    return result.toHex()
   }
 
   async getBlock(
