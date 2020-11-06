@@ -71,7 +71,6 @@ async function run() {
   const factory = new ContractFactory(erc20.abi, erc20.bytecode, signer);
 
   const contract = await factory.deploy(1000);
-  contract.address
   const signerAddress = u8aToHex(addressToEvm(pairs.alice.address))
   const ethAddress = u8aToHex(addressToEvm('5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty'))
 
@@ -80,8 +79,6 @@ async function run() {
   const result2 = await contract.transfer(ethAddress, '100')
   console.log(result2)
   const balance = await contract.balanceOf(ethAddress)
-
-  console.log('哈哈哈')
 }
 
 run().catch((error) => {

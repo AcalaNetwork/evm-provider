@@ -1,6 +1,7 @@
 import { BigNumber, BigNumberish } from "@ethersproject/bignumber";
 import { Bytes, BytesLike } from "@ethersproject/bytes";
 import { Logger } from "@ethersproject/logger";
+import { utils } from "ethers";
 import {
   Deferrable,
   defineReadOnly,
@@ -122,12 +123,13 @@ export class Signer {
   readonly provider?: Provider;
   readonly keyringPair: KeyringPair;
 
+  readonly address: string;
   ///////////////////
   // Sub-classes MUST implement these
 
   // Returns the checksum address
   async getAddress(): Promise<string> {
-    return Promise.resolve(u8aToHex(addressToEvm(this.keyringPair.address)));
+    return Promise.resolve(utils.getAddress(u8aToHex(addressToEvm(this.keyringPair.address))));
   }
 
   // Returns the signed prefixed-message. This MUST treat:
@@ -135,7 +137,6 @@ export class Signer {
   // - string as a UTF8-message
   // i.e. "0x1234" is a SIX (6) byte string, NOT 2 bytes of data
   async signMessage(message: Bytes | string): Promise<string> {
-    console.log(111, message)
     return this._fail("signMessage");
   }
 
@@ -167,6 +168,8 @@ export class Signer {
   // Sub-classes MUST call super
   constructor(keyringPair: KeyringPair, provider: Provider) {
     defineReadOnly(this, "_isSigner", true);
+    defineReadOnly(this, "keyringPair", keyringPair);
+    defineReadOnly(this, "address", utils.getAddress(u8aToHex(addressToEvm(keyringPair.address))));
     defineReadOnly(this, "keyringPair", keyringPair);
     defineReadOnly(this, "provider", provider || null);
   }
@@ -224,6 +227,7 @@ export class Signer {
           toBN(tx.nonce) || null
         );
       } else {
+        console.log('hhhh')
         extrinsic = this.provider.api.tx.evm.call(
           tx.from,
           tx.to,
