@@ -12,6 +12,8 @@
       "args": [
         "--require",
         "ts-node/register",
+        "--timeout",
+        "60000",
         "linkdrop/test/LinkdropERC20.ts"
       ],
       "console": "integratedTerminal",

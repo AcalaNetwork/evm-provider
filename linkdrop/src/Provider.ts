@@ -7,6 +7,8 @@ import { ApiPromise, WsProvider } from "@polkadot/api";
 import { isHex, isNumber, hexToBn, numberToHex } from "@polkadot/util";
 import { evmToAddress } from "@polkadot/util-crypto";
 import eventemitter from "eventemitter3";
+import { Sequelize, Op, SyncOptions } from 'sequelize';
+import initDB, { EvmLogs } from '@open-web3/indexer/models';
 
 export type BlockTag = string | number;
 
@@ -135,19 +137,32 @@ export class Provider extends eventemitter implements AbstractProvider {
   readonly api: ApiPromise;
   readonly resolveApi: Promise<ApiPromise>;
   readonly _isProvider: boolean;
+  readonly db: Sequelize;
 
-  constructor(options: any) {
+  constructor(options: any, db: Sequelize) {
     super();
     this.api = new ApiPromise(
       options
     );
+
     this.resolveApi = this.api.isReady;
     this._isProvider = true;
+
+    this.db = db
   }
 
   static isProvider(value: any) {
     return !!(value && value._isProvider);
   }
+
+  async init() {
+    await this.db.authenticate()
+    initDB(this.db);
+
+    await this.api.isReady
+  }
+
+
 
   async getNetwork() {
     await this.resolveApi;
@@ -247,7 +262,6 @@ export class Provider extends eventemitter implements AbstractProvider {
   async sendTransaction(
     signedTransaction: string | Promise<string>
   ): Promise<TransactionResponse> {
-    console.log(signedTransaction);
     return this._fail("sendTransaction");
   }
 
@@ -265,7 +279,7 @@ export class Provider extends eventemitter implements AbstractProvider {
   ): Promise<BigNumber> {
 
     const resolved = await this._resolveTransaction(transaction)
-    console.log(resolved)
+
     const result = await (this.api.rpc as any).eth.estimateGas(resolved)
     return result.toHex()
   }
@@ -309,7 +323,63 @@ export class Provider extends eventemitter implements AbstractProvider {
   }
 
   async getLogs(filter: Filter): Promise<Array<Log>> {
-    return this._fail("getLogs");
+    const condition = []
+    //@ts-ignore
+    if ((filter as FilterByBlockHash).blockHash) {
+      condition.push({
+        blockHash: (filter as FilterByBlockHash).blockHash
+      })
+    } else if (filter.fromBlock || filter.toBlock) {
+      const blockNumberFilter = {}
+      if (filter.fromBlock) {
+        const from = await this._resolveBlockNumber(filter.fromBlock)
+        blockNumberFilter[Op.gte] = from
+      }
+      if (filter.toBlock) {
+        const to = await this._resolveBlockNumber(filter.toBlock)
+        blockNumberFilter[Op.lte] = to
+      }
+      condition.push({
+        blockNumber: blockNumberFilter
+      })
+    }
+
+    if (filter.address) {
+      condition.push({
+        address: filter.address
+      })
+    }
+
+    if (filter.topics) {
+      condition.push({
+        [Op.contains]: {
+          topics: [].concat(filter.topics) as String[]
+        }
+      })
+    }
+
+
+    const model = this.db.model('EvmLogs')
+
+    const data = await model.findAll({
+      attributes: [
+        "blockNumber",
+        "blockHash",
+        "transactionIndex",
+        "removed",
+        "address",
+        "data",
+        "topics",
+        "transactionHash",
+        "logIndex"
+      ],
+      where: {
+        [Op.and]: condition
+      },
+      raw: true,
+    })
+
+    return data as any
   }
 
   _fail(operation: string): Promise<any> {
@@ -345,6 +415,33 @@ export class Provider extends eventemitter implements AbstractProvider {
     const hash = await this.api.query.system.blockHash(resolvedBlockHash);
 
     return hash.toString();
+  }
+
+  async _resolveBlockNumber(blockTag?: BlockTag | Promise<BlockTag>) {
+    await this.resolveApi;
+
+    if (!blockTag) return undefined;
+
+    const resolvedBlockNumber = await blockTag;
+
+    if (resolvedBlockNumber === "pending") {
+      throw new Error("Unsupport Block Pending");
+    }
+
+    if (resolvedBlockNumber === "latest") {
+      const header = await this.api.rpc.chain.getHeader();
+      return header.number.toNumber();
+    }
+
+    if (resolvedBlockNumber === "earliest") {
+      return 0;
+    }
+
+    if (isNumber(resolvedBlockNumber)) {
+      return resolvedBlockNumber;
+    } else {
+      throw new Error("Expect blockHash to be a number or tag");
+    }
   }
 
   async _resolveAddress(addressOrName: string | Promise<string>) {

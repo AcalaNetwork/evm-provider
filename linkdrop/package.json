@@ -10,10 +10,12 @@
     "@babel/polyfill": "^7.12.1",
     "@babel/preset-env": "^7.12.1",
     "@linkdrop/sdk": "^1.1.6",
+    "@open-web3/indexer": "^0.6.0-beta.28",
     "chai": "^4.2.0",
     "ethereum-waffle": "^2.0.14",
     "ethers": "^5.0.18",
     "openzeppelin-solidity": "^2.2.0",
+    "sequelize": "^6.3.5",
     "solc": "^0.5.10",
     "ts-node": "^9.0.0"
   }

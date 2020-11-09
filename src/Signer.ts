@@ -135,7 +135,6 @@ export class Signer {
   // - string as a UTF8-message
   // i.e. "0x1234" is a SIX (6) byte string, NOT 2 bytes of data
   async signMessage(message: Bytes | string): Promise<string> {
-    console.log(111, message)
     return this._fail("signMessage");
   }
 

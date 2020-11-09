@@ -203,8 +203,6 @@ export class Provider extends eventemitter implements AbstractProvider {
 
     const blockHash = await this._resolveBlockHash(blockTag);
 
-    console.log(address, blockHash);
-
     const accountInfo = blockHash
       ? await this.api.query.system.account.at(blockHash, address)
       : await this.api.query.system.account(address);
@@ -248,7 +246,6 @@ export class Provider extends eventemitter implements AbstractProvider {
   async sendTransaction(
     signedTransaction: string | Promise<string>
   ): Promise<TransactionResponse> {
-    console.log(signedTransaction);
     return this._fail("sendTransaction");
   }
 

@@ -4,8 +4,14 @@ import testingPairs from "@polkadot/keyring/testingPairs";
 import { Provider } from "../src/Provider";
 import { Signer } from "../src/Signer";
 import { addressToEvm, evmToAddress } from "@polkadot/util-crypto";
+import { Sequelize } from 'sequelize'
+import { Op, SyncOptions } from 'sequelize';
 
 export function getProvider() {
+  const db = new Sequelize('postgres://postgres:postgres@192.168.1.165:5432/postgres', {
+    logging: false
+  });
+
   return new Provider(options({
     provider: new WsProvider('ws://192.168.1.165:9944'),
     types: {
@@ -55,7 +61,7 @@ export function getProvider() {
         },
       },
     }
-  }));
+  }), db);
 }
 
 export function getWallet() {
@@ -85,7 +91,8 @@ export async function initEVMBalance(api) {
   await transfer(api, pairs.alice, evmToAddress(addressToEvm(pairs.charlie.address)))
   await transfer(api, pairs.alice, evmToAddress(addressToEvm(pairs.dave.address)))
   await transfer(api, pairs.alice, evmToAddress(addressToEvm(pairs.eve.address)))
+  await transfer(api, pairs.bob, pairs.dave.address)
+  await transfer(api, pairs.bob, pairs.eve.address)
+  await transfer(api, pairs.bob, pairs.charlie.address)
   console.log('init success')
 }
-
-

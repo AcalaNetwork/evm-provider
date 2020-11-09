@@ -227,7 +227,6 @@ export class Signer {
           toBN(tx.nonce) || null
         );
       } else {
-        console.log('hhhh')
         extrinsic = this.provider.api.tx.evm.call(
           tx.from,
           tx.to,
