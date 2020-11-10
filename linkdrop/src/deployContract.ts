@@ -26,5 +26,6 @@ export async function deployContract(
     ...overrideOptions
   });
   await contract.deployed();
+  await signer.provider.init();
   return contract;
 }

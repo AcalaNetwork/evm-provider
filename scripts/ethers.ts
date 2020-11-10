@@ -11,7 +11,7 @@ import { WsProvider } from "@polkadot/api";
 
 async function run() {
   const provider = new Provider(options({
-    provider: new WsProvider('ws://192.168.1.165:9944'),
+    provider: new WsProvider('ws://127.0.0.1:9944'),
     types: {
       CallRequest: {
         from: "Option<H160>",

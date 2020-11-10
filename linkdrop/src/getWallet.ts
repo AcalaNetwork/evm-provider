@@ -8,12 +8,12 @@ import { Sequelize } from 'sequelize'
 import { Op, SyncOptions } from 'sequelize';
 
 export function getProvider() {
-  const db = new Sequelize('postgres://postgres:postgres@192.168.1.165:5432/postgres', {
+  const db = new Sequelize('postgres://postgres:postgres@127.0.0.1:5432/postgres', {
     logging: false
   });
 
   return new Provider(options({
-    provider: new WsProvider('ws://192.168.1.165:9944'),
+    provider: new WsProvider('ws://127.0.0.1:9944'),
     types: {
       CallRequest: {
         from: "Option<H160>",
@@ -96,3 +96,13 @@ export async function initEVMBalance(api) {
   await transfer(api, pairs.bob, pairs.charlie.address)
   console.log('init success')
 }
+
+
+// async function run() {
+//   const provider = getProvider()
+//   await provider.init()
+//   const result = await provider.getTransactionReceipt("0xbd63eec0e095aa0d3e122464c8f433cefb752cfb44040a4af36f682289d12345")
+//   console.log(result)
+// }
+
+// run()

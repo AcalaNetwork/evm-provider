@@ -4,8 +4,8 @@ import { BigNumber, BigNumberish } from "@ethersproject/bignumber";
 import type { BytesLike } from "@ethersproject/bytes";
 import { Deferrable } from "@ethersproject/properties";
 import { ApiPromise, WsProvider } from "@polkadot/api";
-import { isHex, isNumber, hexToBn, numberToHex } from "@polkadot/util";
-import { evmToAddress } from "@polkadot/util-crypto";
+import { isHex, isNumber, hexToBn, numberToHex, u8aToHex } from "@polkadot/util";
+import { evmToAddress, addressToEvm } from "@polkadot/util-crypto";
 import eventemitter from "eventemitter3";
 import { Sequelize, Op, SyncOptions } from 'sequelize';
 import initDB, { EvmLogs } from '@open-web3/indexer/models';
@@ -158,7 +158,6 @@ export class Provider extends eventemitter implements AbstractProvider {
   async init() {
     await this.db.authenticate()
     initDB(this.db);
-
     await this.api.isReady
   }
 
@@ -301,9 +300,68 @@ export class Provider extends eventemitter implements AbstractProvider {
   }
 
   async getTransactionReceipt(
-    transactionHash: string
+    txHash: string
   ): Promise<TransactionReceipt> {
-    return this._fail("getTransactionReceipt");
+    const Extrinsic = this.db.model('Extrinsic')
+    const Events = this.db.model('Events')
+    console.log(txHash)
+    await new Promise((resolve) => setTimeout(() => {
+      resolve()
+    }, 5000))
+
+    const { blockNumber, blockHash, index: transactionIndex, hash: transactionHash, args } = await Extrinsic.findOne({
+      attributes: ['blockNumber', 'blockHash', 'index', 'hash', 'args'],
+      where: {
+        hash: txHash
+      },
+      raw: true
+    }) as any
+
+    const from = args.source
+
+    const events = await Events.findAll({
+      attributes: ['section', 'method', 'args'],
+
+      where: {
+        phaseIndex: transactionIndex,
+        blockHash: blockHash
+      },
+      raw: true
+    }) as any
+
+    const findCreated = events.find(x => x.section.toUpperCase() === 'EVM' && x.method.toUpperCase() === 'CREATED')
+    const findExecuted = events.find(x => x.section.toUpperCase() === 'EVM' && x.method.toUpperCase() === 'EXECUTED')
+    const result = events.find(x => x.section.toUpperCase() === 'SYSTEM' && x.method.toUpperCase() === 'EXTRINSICSUCCESS')
+
+    const status = !!(findCreated || findExecuted) ? 1 : 0
+
+    const contractAddress = findCreated ? findCreated.args[0] : null
+
+    const to = findExecuted ? findExecuted.args[0] : null
+
+    const logs = await this.getLogs({
+      // @ts-ignore
+      transactionHash,
+    })
+
+    const gasUsed = BigNumber.from(result.args[0].weight)
+
+    return {
+      to,
+      from,
+      contractAddress,
+      transactionIndex,
+      gasUsed,
+      logsBloom: '0x',
+      blockHash,
+      transactionHash,
+      logs,
+      blockNumber,
+      confirmations: 4,
+      cumulativeGasUsed: gasUsed,
+      byzantium: false,
+      status,
+    }
   }
 
   async resolveName(name: string | Promise<string>) {
@@ -324,7 +382,13 @@ export class Provider extends eventemitter implements AbstractProvider {
 
   async getLogs(filter: Filter): Promise<Array<Log>> {
     const condition = []
-    //@ts-ignore
+
+    if ((filter as any).transactionHash) {
+      condition.push({
+        transactionHash: (filter as any).transactionHash
+      })
+    }
+
     if ((filter as FilterByBlockHash).blockHash) {
       condition.push({
         blockHash: (filter as FilterByBlockHash).blockHash
@@ -357,7 +421,6 @@ export class Provider extends eventemitter implements AbstractProvider {
         }
       })
     }
-
 
     const model = this.db.model('EvmLogs')
 

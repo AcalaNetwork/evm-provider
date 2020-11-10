@@ -53,7 +53,7 @@ const chainId = 4 // Rinkeby
 
 describe('ETH/ERC20 linkdrop tests', () => {
   before(async () => {
-    await provider.api.isReady
+    await provider.init()
     await initEVMBalance(provider.api)
     tokenInstance = await deployContract(linkdropMaster, TokenMock)
   })
@@ -100,12 +100,11 @@ describe('ETH/ERC20 linkdrop tests', () => {
       initcode
     )
 
-    // @TODO event
-    // await expect(
-    //   factory.deployProxy(campaignId, {
-    //     gasLimit: 6000000
-    //   })
-    // ).to.emit(factory, 'Deployed')
+    await expect(
+      factory.deployProxy(campaignId, {
+        gasLimit: 6000000
+      })
+    ).to.emit(factory, 'Deployed')
 
     await factory.deployProxy(campaignId, {
       gasLimit: 6000000

@@ -4,7 +4,7 @@ import erc20 from "../erc20.json";
 import { EthSigner } from "../signer";
 
 async function run() {
-  const url = "http://192.168.1.165:7545";
+  const url = "http://127.0.0.1:7545";
 
   const provider = new ethers.providers.JsonRpcProvider(url);
 

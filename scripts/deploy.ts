@@ -13,7 +13,7 @@ async function run() {
   const p = options();
   const api = new ApiPromise(
     options({
-      provider: new WsProvider("ws://192.168.1.165:9944"),
+      provider: new WsProvider("ws://127.0.0.1:9944"),
     })
   );
 
