@@ -206,21 +206,21 @@ export class Provider extends eventemitter implements AbstractProvider {
     await this.resolveApi;
 
     const resolvedBlockTag = await blockTag;
-    const address = await this._resolveAddress(addressOrName);
 
+    const address = await this._resolveEvmAddress(addressOrName);
     if (resolvedBlockTag === "pending") {
-      const nextIndex = await this.api.rpc.system.accountNextIndex(address);
+      const nonce = await this.api.query.evm.accountNonces(address);
 
-      return nextIndex.toNumber();
+      return (nonce as any).toNumber()
     }
 
     const blockHash = await this._resolveBlockHash(blockTag);
 
-    const accountInfo = blockHash
-      ? await this.api.query.system.account.at(blockHash, address)
-      : await this.api.query.system.account(address);
+    const nonce = blockHash
+      ? await this.api.query.evm.accountNonces.at(blockHash, address)
+      : await this.api.query.evm.accountNonces(address);
 
-    return accountInfo.nonce.toNumber();
+    return (nonce as any).toNumber();
   }
 
   async getCode(
@@ -514,6 +514,9 @@ export class Provider extends eventemitter implements AbstractProvider {
 
   async _resolveEvmAddress(addressOrName: string | Promise<string>) {
     const resolved = await addressOrName;
+    if(resolved.length === 42) {
+      return resolved
+    }
     const result = await this.api.query.evmAccounts.evmAddresses(resolved)
     return result.toString()
   }
