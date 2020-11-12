@@ -211,7 +211,7 @@ export class Provider extends eventemitter implements AbstractProvider {
     if (resolvedBlockTag === "pending") {
       const nextIndex = await this.api.rpc.system.accountNextIndex(address);
 
-      return nextIndex.toNumber() + 1;
+      return nextIndex.toNumber();
     }
 
     const blockHash = await this._resolveBlockHash(blockTag);
