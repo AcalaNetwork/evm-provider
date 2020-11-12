@@ -3,12 +3,11 @@ import { Provider as AbstractProvider } from "@ethersproject/abstract-provider";
 import { BigNumber, BigNumberish } from "@ethersproject/bignumber";
 import type { BytesLike } from "@ethersproject/bytes";
 import { Deferrable } from "@ethersproject/properties";
-import { ApiPromise, WsProvider } from "@polkadot/api";
-import { isHex, isNumber, hexToBn, numberToHex, u8aToHex } from "@polkadot/util";
-import { evmToAddress, addressToEvm } from "@polkadot/util-crypto";
+import initDB from '@open-web3/indexer/models';
+import { ApiPromise } from "@polkadot/api";
+import { isHex, isNumber, numberToHex } from "@polkadot/util";
 import eventemitter from "eventemitter3";
-import { Sequelize, Op, SyncOptions } from 'sequelize';
-import initDB, { EvmLogs } from '@open-web3/indexer/models';
+import { Op, Sequelize } from 'sequelize';
 
 export type BlockTag = string | number;
 
@@ -212,11 +211,10 @@ export class Provider extends eventemitter implements AbstractProvider {
     if (resolvedBlockTag === "pending") {
       const nextIndex = await this.api.rpc.system.accountNextIndex(address);
 
-      return nextIndex.toNumber();
+      return nextIndex.toNumber() + 1;
     }
 
     const blockHash = await this._resolveBlockHash(blockTag);
-
 
     const accountInfo = blockHash
       ? await this.api.query.system.account.at(blockHash, address)
@@ -269,7 +267,8 @@ export class Provider extends eventemitter implements AbstractProvider {
     blockTag?: BlockTag | Promise<BlockTag>
   ): Promise<string> {
     const resolved = await this._resolveTransaction(transaction)
-    const result = await (this.api.rpc as any).eth.call(resolved)
+
+    const result = await (this.api.rpc as any).evm.call(resolved)
     return result.toHex()
   }
 
@@ -279,7 +278,7 @@ export class Provider extends eventemitter implements AbstractProvider {
 
     const resolved = await this._resolveTransaction(transaction)
 
-    const result = await (this.api.rpc as any).eth.estimateGas(resolved)
+    const result = await (this.api.rpc as any).evm.estimateGas(resolved)
     return result.toHex()
   }
 
@@ -304,7 +303,7 @@ export class Provider extends eventemitter implements AbstractProvider {
   ): Promise<TransactionReceipt> {
     const Extrinsic = this.db.model('Extrinsic')
     const Events = this.db.model('Events')
-    console.log(txHash)
+
     await new Promise((resolve) => setTimeout(() => {
       resolve()
     }, 5000))
@@ -509,16 +508,19 @@ export class Provider extends eventemitter implements AbstractProvider {
 
   async _resolveAddress(addressOrName: string | Promise<string>) {
     const resolved = await addressOrName;
-    return evmToAddress(resolved);
+    const result = await this.api.query.evmAccounts.accounts(resolved)
+    return result.toString()
   }
 
   async _resolveEvmAddress(addressOrName: string | Promise<string>) {
-    return await addressOrName;
+    const resolved = await addressOrName;
+    const result = await this.api.query.evmAccounts.evmAddresses(resolved)
+    return result.toString()
   }
 
   async _resolveTransaction(transaction: Deferrable<TransactionRequest>) {
     const tx = await transaction
-    for (const key of ['gasLimit', 'nonce', 'gasPrice', 'value']) {
+    for (const key of ['gasLimit', 'value']) {
       if (tx[key]) {
         if ((BigNumber.isBigNumber(tx[key]))) {
           tx[key] = tx[key].toHexString()
@@ -527,6 +529,10 @@ export class Provider extends eventemitter implements AbstractProvider {
         }
       }
     }
+
+    delete tx.nonce
+    delete tx.gasPrice
+    delete tx.chainId
 
     return tx
   }
