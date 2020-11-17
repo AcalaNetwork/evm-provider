@@ -90,22 +90,10 @@ async function run() {
     proxyAddress
   )
 
-  link = await createLink(
-    linkdropSigner,
-    weiAmount,
-    tokenAddress,
-    tokenAmount,
-    expirationTime,
-    version,
-    chainId,
-    proxyAddress
-  )
-
   await proxy.addSigner(linkdropSigner.address, { gasLimit: 500000 })
   const isSigner = await proxy.isLinkdropSigner(linkdropSigner.address)
 
   console.log('isSigner:', isSigner)
-
 
   const result = await proxy.verifyLinkdropSignerSignature(
     weiAmount,

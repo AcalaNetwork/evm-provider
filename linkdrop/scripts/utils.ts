@@ -77,7 +77,7 @@ export const createLink = async (
   chainId,
   proxyAddress
 ) => {
-  let linkWallet = ethers.Wallet.createRandom()
+  let linkWallet = new ethers.Wallet('0x54bfdf95b6a246d0be0ce5f3d79bba15b30916e1dd4c68ba0e2051ef3199e62c')
   let linkKey = linkWallet.privateKey
   let linkId = linkWallet.address
   let linkdropSignerSignature = await signLink(
@@ -91,6 +91,8 @@ export const createLink = async (
     linkId,
     proxyAddress
   )
+
+  console.log(linkId, linkdropSignerSignature)
   return {
     linkKey, // link's ephemeral private key
     linkId, // address corresponding to link key
