@@ -180,7 +180,7 @@ export class Provider extends eventemitter implements AbstractProvider {
   }
 
   async getGasPrice() {
-    return BigNumber.from("100");
+    return BigNumber.from("1");
   }
 
   async getBalance(
@@ -267,8 +267,10 @@ export class Provider extends eventemitter implements AbstractProvider {
     blockTag?: BlockTag | Promise<BlockTag>
   ): Promise<string> {
     const resolved = await this._resolveTransaction(transaction)
-
+    console.log("call:", resolved)
     const result = await (this.api.rpc as any).evm.call(resolved)
+    console.log("result:", result.toHex())
+
     return result.toHex()
   }
 
@@ -301,12 +303,13 @@ export class Provider extends eventemitter implements AbstractProvider {
   async getTransactionReceipt(
     txHash: string
   ): Promise<TransactionReceipt> {
+    initDB(this.db)
     const Extrinsic = this.db.model('Extrinsic')
     const Events = this.db.model('Events')
 
     await new Promise((resolve) => setTimeout(() => {
       resolve()
-    }, 5000))
+    }, 1000))
 
     const { blockNumber, blockHash, index: transactionIndex, hash: transactionHash, args } = await Extrinsic.findOne({
       attributes: ['blockNumber', 'blockHash', 'index', 'hash', 'args'],

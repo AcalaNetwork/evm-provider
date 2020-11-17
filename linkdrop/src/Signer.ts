@@ -216,6 +216,7 @@ export class Signer {
     this._checkProvider("sendTransaction");
     return this.populateTransaction(transaction).then((tx) => {
       let extrinsic: SubmittableExtrinsic<"promise">;
+      console.log('111')
       // @TODO create contract
       if (!tx.to) {
         extrinsic = this.provider.api.tx.evm.create(

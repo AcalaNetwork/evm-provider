@@ -102,14 +102,14 @@ function handleTxResponse(result: SubmittableResult, api: any): Promise<{
             }
           }
 
-
-          resolve({message, result});
+          reject({ message, result});
         } else if (method === "ExtrinsicSuccess") {
           resolve({result});
         }
+
       })
     } else if(result.isError) {
-      return {result}
+      reject({result})
     }
   })
 }
@@ -292,8 +292,6 @@ export class Wallet extends Signer implements ExternallyOwnedAccount, TypedDataS
           tx.data,
           toBN(tx.value) || "0",
           toBN(tx.gasLimit)
-          // toBN(tx.gasPrice),
-          // toBN(tx.nonce) || null
         );
       } else {
         extrinsic = this.provider.api.tx.evm.call(
@@ -302,21 +300,18 @@ export class Wallet extends Signer implements ExternallyOwnedAccount, TypedDataS
           tx.data,
           toBN(tx.value) || "0",
           toBN(tx.gasLimit)
-          // toBN(tx.gasPrice),
-          // toBN(tx.nonce) || null
         );
       }
 
       return new Promise((resolve, reject) => {
         extrinsic.signAndSend(this.keyringPair, (result: SubmittableResult) => {
-          handleTxResponse(result, this.provider.api).then(({ message }) => {
-            if(message) console.log(message)
+          handleTxResponse(result, this.provider.api).then(() => {
             resolve({
               hash: extrinsic.hash.toHex(),
               from: tx.from,
               confirmations: 10,
               nonce: toBN(tx.nonce).toNumber(),
-              gasLimit: BigNumber.from(100000000),
+              gasLimit: BigNumber.from(6000000),
               gasPrice: BigNumber.from(100),
               data: dataToString(tx.data),
               value: BigNumber.from(100),
@@ -325,8 +320,8 @@ export class Wallet extends Signer implements ExternallyOwnedAccount, TypedDataS
                 return Promise.resolve({} as any);
               },
             })
-          }).catch(error => {
-            reject(error)
+          }).catch(({message, result}) => {
+            reject(message)
           })
         });
       });
@@ -339,11 +334,13 @@ export class Wallet extends Signer implements ExternallyOwnedAccount, TypedDataS
     const extrinsic = this.provider.api.tx.evmAccounts.claimAccount(this.address, signature)
     return new Promise((resolve, reject) => {
       extrinsic.signAndSend(this.keyringPair, (result: SubmittableResult) => {
-        handleTxResponse(result, this.provider.api).then(({ message }) => {
-          console.error(message)
+        handleTxResponse(result, this.provider.api).then(() => {
           resolve()
-        }).catch(error => {
-          reject(error)
+        }).catch(({message, result}) => {
+          if(message === 'evmAccounts.EthAddressHasMapped') {
+            resolve()
+          }
+          reject(message)
         })
       });
     });

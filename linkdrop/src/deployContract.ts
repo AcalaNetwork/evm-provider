@@ -2,7 +2,7 @@ import { providers, ContractFactory } from 'ethers';
 import { ContractJSON, isStandard, hasByteCode } from './ContractJSON';
 import { Signer } from './Signer'
 const defaultDeployOptions = {
-  gasLimit: 100000000,
+  gasLimit: 6000000,
   gasPrice: 100
 };
 
@@ -26,6 +26,5 @@ export async function deployContract(
     ...overrideOptions
   });
   await contract.deployed();
-  await signer.provider.init();
   return contract;
 }
