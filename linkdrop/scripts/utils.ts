@@ -63,6 +63,7 @@ export const signLink = async (
   )
   let messageHashToSign = ethers.utils.arrayify(messageHash)
   let signature = await linkdropSigner.signMessage(messageHashToSign)
+  console.log('signLink', messageHash, signature)
   return signature
 }
 
@@ -106,5 +107,6 @@ export const signReceiverAddress = async (linkKey, receiverAddress) => {
   )
   let messageHashToSign = ethers.utils.arrayify(messageHash)
   let signature = await wallet.signMessage(messageHashToSign)
+  console.log('signReceiverAddress', messageHash, signature)
   return signature
 }

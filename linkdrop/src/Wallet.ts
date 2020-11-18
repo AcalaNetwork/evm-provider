@@ -109,6 +109,7 @@ function handleTxResponse(result: SubmittableResult, api: any): Promise<{
             reject({ message, result});
           } else if (method === "ExtrinsicSuccess") {
             if(isEvmFailed) {
+              console.log(executedFailed.event.data.toHuman())
               reject({ message: 'revert', result})
             }
             resolve({result});

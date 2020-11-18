@@ -31,7 +31,7 @@ const campaignId = 0
 let standardFee
 
 const initcode = '0x6352c7420d6000526103ff60206004601c335afa6040516060f3'
-const chainId = 4 // Rinkeby
+const chainId = 42 // Rinkeby
 
 async function run() {
   const wallets = getWallet()
@@ -105,6 +105,20 @@ async function run() {
     let approverBalanceBefore = await tokenInstance.balanceOf(
       linkdropMaster.address
     )
+
+    console.log({
+      tokenAddress: tokenAddress,
+      linkdropMaster: linkdropMaster.address,
+      receiverAddress: receiverAddress,
+      factory: factory.address,
+      weiAmount,
+      tokenAmount,
+      proxyAddress,
+      relayer: relayer.address,
+      signer: linkdropSigner.address,
+      chainId,
+      link: link.linkId,
+    })
 
     console.log('approverBalanceBefore:', approverBalanceBefore)
 
