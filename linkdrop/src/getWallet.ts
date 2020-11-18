@@ -9,12 +9,12 @@ import { Op, SyncOptions } from 'sequelize';
 import { getContractAddress } from "@ethersproject/address";
 
 export function getProvider() {
-  const db = new Sequelize('postgres://postgres:postgres@192.168.1.10:5432/postgres', {
+  const db = new Sequelize('postgres://postgres:postgres@127.0.0.1:5432/postgres', {
     logging: false
   });
 
   return new Provider(options({
-    provider: new WsProvider('ws://192.168.1.10:9944'),
+    provider: new WsProvider('ws://127.0.0.1:9944'),
     types: {
       EvmAddress: 'H160',
       CallRequest: {
