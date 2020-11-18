@@ -74,40 +74,46 @@ function handleTxResponse(result: SubmittableResult, api: any): Promise<{
 }> {
   return new Promise((resolve, reject) => {
     if (result.status.isFinalized || result.status.isInBlock) {
+      const createdFailed = result.findRecord('evm', 'CreatedFailed')
+      const executedFailed = result.findRecord('evm', 'ExecutedFailed')
+
+      const isEvmFailed = createdFailed || executedFailed
+
       result.events
-      .filter(
-        ({ event: { section } }: any): boolean => section === "system"
-      )
-      .forEach((event: any): void => {
-        const {
-          event: { data, method },
-        } = event;
+        .filter(
+          ({ event: { section } }: any): boolean => section === "system"
+        )
+        .forEach((event: any): void => {
+          const {
+            event: { data, method },
+          } = event;
+          if (method === "ExtrinsicFailed") {
+            const [dispatchError] = data;
+            let message = dispatchError.type;
 
-        if (method === "ExtrinsicFailed") {
-          const [dispatchError] = data;
-          let message = dispatchError.type;
-
-          if (dispatchError.isModule) {
-            try {
-              const mod = dispatchError.asModule;
-              const error =api.registry.findMetaError(
-                new Uint8Array([
-                  mod.index.toNumber(),
-                  mod.error.toNumber(),
-                ])
-              );
-              message = `${error.section}.${error.name}`;
-            } catch (error) {
-              // swallow
+            if (dispatchError.isModule) {
+              try {
+                const mod = dispatchError.asModule;
+                const error =api.registry.findMetaError(
+                  new Uint8Array([
+                    mod.index.toNumber(),
+                    mod.error.toNumber(),
+                  ])
+                );
+                message = `${error.section}.${error.name}`;
+              } catch (error) {
+                // swallow
+              }
             }
+
+            reject({ message, result});
+          } else if (method === "ExtrinsicSuccess") {
+            if(isEvmFailed) {
+              reject({ message: 'revert', result})
+            }
+            resolve({result});
           }
-
-          reject({ message, result});
-        } else if (method === "ExtrinsicSuccess") {
-          resolve({result});
-        }
-
-      })
+        })
     } else if(result.isError) {
       reject({result})
     }

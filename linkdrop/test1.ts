@@ -1,14 +1,13 @@
+import { ethers } from 'ethers';
 import LinkdropFactory from './build/LinkdropFactory.json';
 import LinkdropMastercopy from './build/LinkdropMastercopy.json';
 import TokenMock from './build/TokenMock.json';
 import {
   computeProxyAddress,
-  createLink
+  createLink, signReceiverAddress
 } from './scripts/utils';
 import { deployContract } from './src/deployContract';
 import { getWallet, initWallet } from './src/getWallet';
-import {ethers} from 'ethers'
-
 const wallets = getWallet()
 let [linkdropMaster, receiver, nonsender, linkdropSigner, relayer] = wallets
 
@@ -39,72 +38,99 @@ async function run() {
 
   await initWallet(wallets)
 
-
-
   tokenInstance = await deployContract(linkdropMaster, TokenMock)
-  masterCopy = await deployContract(linkdropMaster, LinkdropMastercopy, [], {
-    gasLimit: 6000000
-  })
-  factory = await deployContract(
-    linkdropMaster,
-    LinkdropFactory,
-    [masterCopy.address, chainId],
-    {
+    masterCopy = await deployContract(linkdropMaster, LinkdropMastercopy, [], {
       gasLimit: 6000000
-    }
-  )
-  proxyAddress = computeProxyAddress(
-    factory.address,
-    linkdropMaster.address,
-    campaignId,
-    initcode
-  )
+    })
+    factory = await deployContract(
+      linkdropMaster,
+      LinkdropFactory,
+      [masterCopy.address, chainId],
+      {
+        gasLimit: 6000000
+      }
+    )
+    proxyAddress = computeProxyAddress(
+      factory.address,
+      linkdropMaster.address,
+      campaignId,
+      initcode
+    )
 
-  await factory.deployProxy(campaignId, {
-    gasLimit: 6000000
-  })
+    await factory.deployProxy(campaignId, {
+      gasLimit: 6000000
+    })
 
 
-  proxy = new ethers.Contract(
-    proxyAddress,
-    LinkdropMastercopy.abi,
-    linkdropMaster
-  )
+    proxy = new ethers.Contract(
+      proxyAddress,
+      LinkdropMastercopy.abi,
+      linkdropMaster
+    )
 
-  let linkdropMasterAddress = await proxy.linkdropMaster()
-  console.log('linkdropMasterAddress:', linkdropMasterAddress)
+    tokenAmount = 100
+    weiAmount = 0
+    tokenAddress = tokenInstance.address
+    tokenAmount = 100
+    expirationTime = 11234234223
+    version = 1
 
-  weiAmount = 0
-  tokenAddress = tokenInstance.address
-  tokenAmount = 100
-  expirationTime = 11234234223
-  version = 1
-  link = await createLink(
-    linkdropSigner,
-    weiAmount,
-    tokenAddress,
-    tokenAmount,
-    expirationTime,
-    version,
-    chainId,
-    proxyAddress
-  )
+    await linkdropMaster.sendTransaction({
+      to: proxy.address,
+      value: ethers.utils.parseEther('2')
+    })
 
-  await proxy.addSigner(linkdropSigner.address, { gasLimit: 500000 })
-  const isSigner = await proxy.isLinkdropSigner(linkdropSigner.address)
+    await proxy.addSigner(linkdropSigner.address, { gasLimit: 500000 })
 
-  console.log('isSigner:', isSigner)
+    await factory.addRelayer(relayer.address)
 
-  const result = await proxy.verifyLinkdropSignerSignature(
-    weiAmount,
-    tokenAddress,
-    tokenAmount,
-    expirationTime,
-    link.linkId,
-    link.linkdropSignerSignature
-  )
+    factory = factory.connect(relayer)
 
-  console.log('verifyLinkdropSignerSignature: ', result)
+    await tokenInstance.approve(proxy.address, tokenAmount)
+
+    link = await createLink(
+      linkdropSigner,
+      weiAmount,
+      tokenAddress,
+      tokenAmount,
+      expirationTime,
+      version,
+      chainId,
+      proxyAddress
+    )
+
+    receiverAddress = ethers.Wallet.createRandom().address
+    receiverSignature = await signReceiverAddress(link.linkKey, receiverAddress)
+
+    let approverBalanceBefore = await tokenInstance.balanceOf(
+      linkdropMaster.address
+    )
+
+    console.log('approverBalanceBefore:', approverBalanceBefore)
+
+    await factory.claim(
+      weiAmount,
+      tokenAddress,
+      tokenAmount,
+      expirationTime,
+      link.linkId,
+      linkdropMaster.address,
+      campaignId,
+      link.linkdropSignerSignature,
+      receiverAddress,
+      receiverSignature,
+      { gasLimit: 800000 }
+    )
+
+    let approverBalanceAfter = await tokenInstance.balanceOf(
+      linkdropMaster.address
+    )
+    console.log('approverBalanceAfter:', approverBalanceAfter)
+
+  // expect(approverBalanceAfter).to.eq(approverBalanceBefore.sub(tokenAmount))
+
+  // let receiverTokenBalance = await tokenInstance.balanceOf(receiverAddress)
+  // expect(receiverTokenBalance).to.eq(tokenAmount)
 }
 
 run()
