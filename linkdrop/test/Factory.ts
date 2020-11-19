@@ -92,7 +92,7 @@ describe('Factory tests', () => {
       initcode
     )
 
-    const value = 100 // wei
+    const value = ethers.utils.parseEther('20') // wei
 
     await expect(
       factory.deployProxyWithSigner(campaignId, linkdropSigner.address, {

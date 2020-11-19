@@ -9,7 +9,12 @@ import LinkdropMastercopy from './build/LinkdropMastercopy.json'
 import TokenMock from './build/TokenMock.json'
 import { deployContract } from './src/deployContract'
 import { getProvider, getWallet, initWallet } from './src/getWallet'
-
+import {
+  computeProxyAddress,
+  createLink,
+  signReceiverAddress,
+  computeBytecode
+} from './scripts/utils'
 
 const ethers = require('ethers')
 
@@ -54,6 +59,7 @@ async function run() {
   masterCopy = await deployContract(linkdropMaster, LinkdropMastercopy, [], {
     gasLimit: 6000000
   })
+
   factory = await deployContract(
     linkdropMaster,
     LinkdropFactory,
@@ -63,10 +69,42 @@ async function run() {
     }
   )
 
+  let expectedAddress = computeProxyAddress(
+    factory.address,
+    linkdropMaster.address,
+    campaignId,
+    initcode
+  )
+
   await factory.deployProxyWithSigner(campaignId, linkdropSigner.address, {
     value: ethers.utils.parseEther('10'),
     gasLimit: 3_000_000_000
   })
+
+  proxy = new ethers.Contract(
+    expectedAddress,
+    LinkdropMastercopy.abi,
+    linkdropMaster
+  )
+
+  console.log('proxy address:', proxy.address)
+
+  let linkdropMasterAddress = await proxy.linkdropMaster()
+  // expect(linkdropMasterAddress).to.eq(linkdropMaster.address)
+
+  let version = await proxy.version()
+  // expect(version).to.eq(1)
+
+  let owner = await proxy.owner()
+  // expect(owner).to.eq(factory.address)
+
+  let isSigner = await proxy.isLinkdropSigner(linkdropSigner.address)
+  // expect(isSigner).to.eq(true)
+
+  const balance = await provider.getBalance(proxy.address)
+
+  console.log(balance)
+  // expect(balance).to.eq(value)
 }
 
 run().catch(error => {

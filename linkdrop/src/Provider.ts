@@ -416,7 +416,7 @@ export class Provider extends eventemitter implements AbstractProvider {
 
     if (filter.address) {
       condition.push({
-        address: filter.address
+        address: filter.address.toLowerCase()
       })
     }
 
@@ -427,7 +427,7 @@ export class Provider extends eventemitter implements AbstractProvider {
         }
       })
     }
-
+    initDB(this.db)
     const model = this.db.model('EvmLogs')
 
     const data = await model.findAll({
