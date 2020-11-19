@@ -3,11 +3,10 @@
 import chai from 'chai'
 
 import {
-  MockProvider,
-  deployContract,
   solidity
 } from 'ethereum-waffle'
-
+import { getWallet, getProvider, initWallet } from '../src/getWallet'
+import { deployContract } from '../src/deployContract'
 import LinkdropFactory from '../build/LinkdropFactory.json'
 import LinkdropMastercopy from '../build/LinkdropMastercopy.json'
 import TokenMock from '../build/TokenMock.json'
@@ -22,14 +21,16 @@ import {
 const ethers = require('ethers')
 
 // Turn off annoying warnings
-ethers.errors.setLogLevel('error')
+// ethers.errors.setLogLevel('error')
 
 chai.use(solidity)
 const { expect } = chai
 
-let provider = new MockProvider()
+let provider = getProvider()
 
-let [linkdropMaster, linkdropSigner, relayer] = provider.getWallets()
+const wallets = getWallet()
+
+let [linkdropMaster, linkdropSigner, relayer] = wallets
 
 let masterCopy
 let factory
@@ -54,6 +55,8 @@ const chainId = 4 // Rinkeby
 
 describe('Factory tests', () => {
   before(async () => {
+    await provider.init()
+    await initWallet(wallets)
     tokenInstance = await deployContract(linkdropMaster, TokenMock)
   })
 
@@ -94,9 +97,11 @@ describe('Factory tests', () => {
     await expect(
       factory.deployProxyWithSigner(campaignId, linkdropSigner.address, {
         value,
-        gasLimit: 6000000
+        gasLimit: 3_000_000_000
       })
     ).to.emit(factory, 'Deployed')
+
+    console.log('哈哈哈')
 
     proxy = new ethers.Contract(
       expectedAddress,

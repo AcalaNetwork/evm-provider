@@ -3,11 +3,10 @@
 import chai from 'chai'
 
 import {
-  deployContract,
-  MockProvider,
   solidity
 } from 'ethereum-waffle'
-
+import { getWallet, getProvider, initWallet } from '../src/getWallet'
+import { deployContract } from '../src/deployContract'
 import LinkdropFactory from '../build/LinkdropFactory.json'
 import LinkdropMastercopy from '../build/LinkdropMastercopy.json'
 import TokenMock from '../build/TokenMock.json'
@@ -17,14 +16,15 @@ import { computeProxyAddress, computeBytecode } from '../scripts/utils'
 const ethers = require('ethers')
 
 // Turn off annoying warnings
-ethers.errors.setLogLevel('error')
+// ethers.errors.setLogLevel('error')
 
 chai.use(solidity)
 const { expect } = chai
 
-let provider = new MockProvider()
+let provider = getProvider()
 
-let [deployer, linkdropMaster, linkdropSigner, relayer] = provider.getWallets()
+let wallets = getWallet()
+let [deployer, linkdropMaster, linkdropSigner, relayer] =wallets
 
 let masterCopy
 let factory
@@ -50,6 +50,8 @@ const chainId = 4 // Rinkeby
 
 describe('Campaigns tests', () => {
   before(async () => {
+    await provider.init()
+    await initWallet(wallets)
     tokenInstance = await deployContract(linkdropMaster, TokenMock)
   })
 

@@ -5,7 +5,8 @@ import type { BytesLike } from "@ethersproject/bytes";
 import { Deferrable } from "@ethersproject/properties";
 import initDB from '@open-web3/indexer/models';
 import { ApiPromise } from "@polkadot/api";
-import { isHex, isNumber, numberToHex } from "@polkadot/util";
+import { isHex, isNumber, numberToHex, u8aConcat, hexToU8a, u8aFixLength, u8aToHex } from "@polkadot/util";
+import { encodeAddress } from "@polkadot/util-crypto";
 import eventemitter from "eventemitter3";
 import { Op, Sequelize } from 'sequelize';
 
@@ -189,14 +190,19 @@ export class Provider extends eventemitter implements AbstractProvider {
   ) {
     await this.resolveApi;
 
-    const address = await this._resolveAddress(addressOrName);
+    let address = await this._resolveAddress(addressOrName);
+
+    if(!address) {
+      address = await this._toAddress(addressOrName)
+    }
+
     const blockHash = await this._resolveBlockHash(blockTag);
 
     const accountInfo = blockHash
       ? await this.api.query.system.account.at(blockHash, address)
       : await this.api.query.system.account(address);
 
-    return BigNumber.from(accountInfo.data.free.toBn());
+    return BigNumber.from(accountInfo.data.free.toBn().toString());
   }
 
   async getTransactionCount(
@@ -511,6 +517,18 @@ export class Provider extends eventemitter implements AbstractProvider {
     const resolved = await addressOrName;
     const result = await this.api.query.evmAccounts.accounts(resolved)
     return result.toString()
+  }
+
+  async _toAddress(addressOrName: string | Promise<string>) {
+    const resolved = await addressOrName;
+    const address = encodeAddress(
+      u8aFixLength(
+        u8aConcat('evm:', hexToU8a(resolved)),
+        256,
+        true
+      )
+    )
+    return address.toString()
   }
 
   async _resolveEvmAddress(addressOrName: string | Promise<string>) {

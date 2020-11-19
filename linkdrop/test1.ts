@@ -86,6 +86,8 @@ async function run() {
 
     factory = factory.connect(relayer)
 
+    console.log(relayer.address, relayer.keyringPair.address)
+    console.log(factory.address)
     await tokenInstance.approve(proxy.address, tokenAmount)
 
     link = await createLink(
